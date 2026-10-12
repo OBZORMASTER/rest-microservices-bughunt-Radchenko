@@ -1,10 +1,27 @@
+import sys
+import os
+import importlib.util
+
+# Визначаємо базову шлях до папки проєкту
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
+
 import pytest
 from fastapi.testclient import TestClient
 
-# Заглушки або прямий імпорт (для запуску через pytest)
-from auth_service.main import app as auth_app
-from product_service.main import app as product_app
-from order_service.main import app as order_app
+# Функція для безпечного завантаження main.py з папок із дефісами
+def load_app_from_path(service_name, folder_name):
+    file_path = os.path.join(BASE_DIR, folder_name, "main.py")
+    spec = importlib.util.spec_from_file_location(service_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[service_name] = module
+    spec.loader.exec_module(module)
+    return module.app
+
+# Завантажуємо додатки сервісів
+auth_app = load_app_from_path("auth_service", "auth-service")
+product_app = load_app_from_path("product_service", "product-service")
+order_app = load_app_from_path("order_service", "order-service")
 
 client_auth = TestClient(auth_app)
 client_product = TestClient(product_app)
